@@ -1,8 +1,9 @@
-import { OrganizationList } from "@clerk/nextjs"
-import { auth } from "@clerk/nextjs/server"
+import { TaskChooseOrganization } from "@clerk/nextjs"
 
-export default async function ChooseOrganizationPage() {
-  await auth.protect({ unauthenticatedUrl: "/sign-in" })
-
-  return <OrganizationList />
+export default function ChooseOrganizationPage() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <TaskChooseOrganization redirectUrlComplete="/" />
+    </div>
+  )
 }
