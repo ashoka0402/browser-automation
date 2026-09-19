@@ -38,6 +38,15 @@ export async function getWorkflow(orgId: string, id: string) {
   return workflow
 }
 
+export async function getWorkflowById(id: string) {
+  const [workflow] = await db
+    .select()
+    .from(workflows)
+    .where(eq(workflows.id, id))
+
+  return workflow
+}
+
 export async function createWorkflow(orgId: string, name: string) {
   const [workflow] = await db
     .insert(workflows)
