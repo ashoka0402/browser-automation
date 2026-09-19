@@ -32,9 +32,9 @@ export interface ReplaySelection {
   runId: string
 }
 
-// What the console can have selected: a step's output, a live browser, or a run's replay.
+// What the console can have selected: a step's output or the live browser.
 // Only one is active at a time.
-export type ConsoleSelection = StepSelection | LiveSelection | ReplaySelection
+export type ConsoleSelection = StepSelection | LiveSelection
 
 // One step row: the node's icon, its title, and how long it took. It spins while
 // running, reads red when it failed, and dims when it never ran. Clicking it
@@ -110,32 +110,6 @@ function LiveRow({
   )
 }
 
-function ReplayRow({
-  run,
-  isSelected,
-  onSelect,
-}: {
-  run: ConsoleRun
-  isSelected: boolean
-  onSelect: (selection: ReplaySelection) => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect({ kind: "replay", runId: run.id })}
-      className={cn(
-        "flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs hover:bg-accent",
-        isSelected && "bg-accent"
-      )}
-    >
-      <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-        <MonitorPlay className="size-3.5" />
-      </span>
-      <span className="truncate font-medium">Replay</span>
-    </button>
-  )
-}
-
 // The list of runs, newest first, each with its steps below it. Reads the shared
 // realtime run history and reports step clicks up to the ConsolePanel, which owns
 // the selection.
@@ -181,17 +155,6 @@ export function LogsPanel({
             <LiveRow
               run={run}
               isSelected={selected?.kind === "live" && selected.runId === run.id}
-              onSelect={onSelect}
-            />
-          )}
-          {/* The recording is available after Steel releases the session and
-              finishes processing its HLS manifest. */}
-          {run.steelSessionId && !run.isLive && (
-            <ReplayRow
-              run={run}
-              isSelected={
-                selected?.kind === "replay" && selected.runId === run.id
-              }
               onSelect={onSelect}
             />
           )}
