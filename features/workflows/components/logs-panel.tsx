@@ -21,15 +21,21 @@ export interface StepSelection {
   nodeId: string
 }
 
+// The live browser for an executing run, identified by its run alone.
+export interface LiveSelection {
+  kind: "live"
+  runId: string
+}
+
 // The replay of a whole run, not a single step — identified by its run alone.
 export interface ReplaySelection {
   kind: "replay"
   runId: string
 }
 
-// What the console can have selected: one step's output, or one run's replay.
+// What the console can have selected: a step's output, a live browser, or a run's replay.
 // Only one is active at a time.
-export type ConsoleSelection = StepSelection | ReplaySelection
+export type ConsoleSelection = StepSelection | LiveSelection | ReplaySelection
 
 // One step row: the node's icon, its title, and how long it took. It spins while
 // running, reads red when it failed, and dims when it never ran. Clicking it
@@ -74,8 +80,6 @@ function StepRow({
   )
 }
 
-// The replay row for a finished run: it sits with the step rows and selects the
-// same way, but it stands for the whole run's recording rather than one step.
 // The live browser row for an executing run. It opens the read-only Steel viewer
 // without interrupting the Trigger.dev task.
 function LiveRow({
