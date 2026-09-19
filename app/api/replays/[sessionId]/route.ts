@@ -2,14 +2,12 @@ import * as Sentry from "@sentry/nextjs"
 import { auth } from "@clerk/nextjs/server"
 import { steelRequest } from "@/lib/steel"
 
-// Proxies a Browserbase session's replay so the browser can play it back. The
-// retrieval needs the secret API key, so it can only happen server-side — the
-// client never sees it, only the resulting HLS playlist.
+// Proxies a Steel session's replay so the browser can play it back. Any cloud
+// Steel API key stays server-side; the client only sees the resulting playlist.
 //
-// The recording isn't ready the instant the session closes; Browserbase reports
-// it as not-yet-available for a short window afterwards. We pass that through as
-// 202 Accepted so the SessionReplay component knows to keep polling, and hand
-// back the `.m3u8` playlist with 200 once it exists.
+// The recording can lag the session release by a short window. We surface that
+// as 202 Accepted so the SessionReplay component keeps polling until the HLS
+// playlist is available.
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ sessionId: string }> }
