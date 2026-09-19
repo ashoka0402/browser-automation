@@ -65,29 +65,17 @@ export async function runWorkflowAction({
   id: string
   graph: WorkflowGraph
 }) {
-  const { orgId, has } = await auth()
+  const { orgId } = await auth()
 
   if (!orgId) {
     throw new Error("No active organization")
   }
 
-  // The Agent node is Pro-only. Enforce it here rather than in the run task: the
-  // action holds the Clerk session (and has()), while the Trigger.dev task runs
-  // with no auth context. has() evaluates the active org, confirmed above.
   Sentry.getIsolationScope().setAttributes({
     action: "runWorkflowAction",
     orgId,
     workflowId: id,
   })
-
-  const hasAgentNode = graph.nodes.some((node) => node.data.type === "agent")
-  if (hasAgentNode && !has({ plan: "pro" })) {
-    Sentry.logger.warn("Workflow run denied — Agent node requires Pro plan", {
-      workflowId: id,
-      orgId,
-    })
-    throw new Error("The Agent node requires the Pro plan.")
-  }
 
   try {
     await saveWorkflowGraph({ orgId, id, graph })
@@ -110,7 +98,6 @@ export async function runWorkflowAction({
     orgId,
     runId: handle.id,
     nodeCount: graph.nodes.length,
-    hasAgentNode,
   })
 
   return handle
