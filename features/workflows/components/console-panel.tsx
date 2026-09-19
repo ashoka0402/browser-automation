@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/resizable"
 
 import { InspectorPanel } from "@/features/workflows/components/inspector-panel"
+import { useConsoleRuns } from "@/features/workflows/components/workflow-runs-provider"
 import {
   LogsPanel,
   type ConsoleSelection,
@@ -28,6 +29,11 @@ function isSameSelection(a: ConsoleSelection, b: ConsoleSelection) {
 // selection again clears it.
 export function ConsolePanel() {
   const [selected, setSelected] = useState<ConsoleSelection | null>(null)
+  const runs = useConsoleRuns()
+  const liveRun = runs.find((run) => run.isLive && run.steelDebugUrl)
+  const effectiveSelected =
+    selected ??
+    (liveRun ? { kind: "live" as const, runId: liveRun.id } : null)
 
   const toggle = (selection: ConsoleSelection) => {
     setSelected((prev) =>
@@ -38,13 +44,13 @@ export function ConsolePanel() {
   return (
     <ResizablePanelGroup orientation="horizontal" className="size-full">
       <ResizablePanel minSize="12rem">
-        <LogsPanel selected={selected} onSelect={toggle} />
+        <LogsPanel selected={effectiveSelected} onSelect={toggle} />
       </ResizablePanel>
-      {selected && (
+      {effectiveSelected && (
         <>
           <ResizableHandle withHandle />
           <ResizablePanel defaultSize="20rem" minSize="12rem">
-            <InspectorPanel selection={selected} />
+            <InspectorPanel selection={effectiveSelected} />
           </ResizablePanel>
         </>
       )}
