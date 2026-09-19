@@ -2,9 +2,7 @@
 
 import { NodeIcon } from "@/features/workflows/components/node-icon"
 import { LiveSession } from "@/features/workflows/components/live-session"
-import {
-  useConsoleRuns,
-} from "@/features/workflows/components/workflow-runs-provider"
+import { useConsoleRuns } from "@/features/workflows/components/workflow-runs-provider"
 import type { ConsoleSelection } from "@/features/workflows/components/logs-panel"
 
 // A short, centered note for when there's nothing concrete to show.
@@ -24,7 +22,6 @@ export function InspectorPanel({ selection }: { selection: ConsoleSelection }) {
   const run = runs.find((r) => r.id === selection.runId)
 
   // A live selection points at the same Steel session while it is executing.
-  // Once the run ends, fall back to its recording automatically.
   if (selection.kind === "live") {
     if (run?.isLive && run.steelDebugUrl) {
       return <LiveSession viewerUrl={run.steelDebugUrl} />
