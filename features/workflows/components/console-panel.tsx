@@ -25,7 +25,7 @@ function isSameSelection(a: ConsoleSelection, b: ConsoleSelection) {
 
 // The run console below the canvas. It owns what's selected: the logs on the
 // left drive the selection, and the InspectorPanel on the right shows either the
-// selected step's output or the selected run's replay. Clicking the active
+// selected step's output or the live browser. Clicking the active
 // selection again clears it.
 export function ConsolePanel() {
   const [selected, setSelected] = useState<ConsoleSelection | null>(null)
