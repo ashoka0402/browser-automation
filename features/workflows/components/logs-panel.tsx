@@ -76,6 +76,37 @@ function StepRow({
 
 // The replay row for a finished run: it sits with the step rows and selects the
 // same way, but it stands for the whole run's recording rather than one step.
+// The live browser row for an executing run. It opens the read-only Steel viewer
+// without interrupting the Trigger.dev task.
+function LiveRow({
+  run,
+  isSelected,
+  onSelect,
+}: {
+  run: ConsoleRun
+  isSelected: boolean
+  onSelect: (selection: LiveSelection) => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect({ kind: "live", runId: run.id })}
+      className={cn(
+        "flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs hover:bg-accent",
+        isSelected && "bg-accent"
+      )}
+    >
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+        <MonitorPlay className="size-3.5" />
+      </span>
+      <span className="truncate font-medium">Live browser</span>
+      <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground">
+        live
+      </span>
+    </button>
+  )
+}
+
 function ReplayRow({
   run,
   isSelected,
@@ -155,9 +186,16 @@ export function LogsPanel({
               onSelect={onSelect}
             />
           ))}
-          {/* A recording only exists once the run has finished — its session id
-              is present and it's no longer live. */}
-          {run.browserbaseSessionId && !run.isLive && (
+          {run.isLive && run.steelDebugUrl && (
+            <LiveRow
+              run={run}
+              isSelected={selected?.kind === "live" && selected.runId === run.id}
+              onSelect={onSelect}
+            />
+          )}
+          {/* The recording is available after Steel releases the session and
+              finishes processing its HLS manifest. */}
+          {run.steelSessionId && !run.isLive && (
             <ReplayRow
               run={run}
               isSelected={
