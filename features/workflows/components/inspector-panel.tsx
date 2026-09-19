@@ -1,6 +1,7 @@
 "use client"
 
 import { NodeIcon } from "@/features/workflows/components/node-icon"
+import { LiveSession } from "@/features/workflows/components/live-session"
 import { SessionReplay } from "@/features/workflows/components/session-replay"
 import {
   useConsoleRuns,
@@ -23,12 +24,26 @@ export function InspectorPanel({ selection }: { selection: ConsoleSelection }) {
   const runs = useConsoleRuns()
   const run = runs.find((r) => r.id === selection.runId)
 
+  // A live selection points at the same Steel session while it is executing.
+  // Once the run ends, fall back to its recording automatically.
+  if (selection.kind === "live") {
+    if (run?.isLive && run.steelDebugUrl) {
+      return <LiveSession viewerUrl={run.steelDebugUrl} />
+    }
+
+    if (run?.steelSessionId) {
+      return <SessionReplay sessionId={run.steelSessionId} />
+    }
+
+    return <Note>This live browser session is no longer available.</Note>
+  }
+
   // A run's replay stands for the whole session — play it instead of any step.
   if (selection.kind === "replay") {
-    if (!run?.browserbaseSessionId) {
+    if (!run?.steelSessionId) {
       return <Note>This recording is no longer available.</Note>
     }
-    return <SessionReplay sessionId={run.browserbaseSessionId} />
+    return <SessionReplay sessionId={run.steelSessionId} />
   }
 
   const step = run?.steps.find((s) => s.nodeId === selection.nodeId)
