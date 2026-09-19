@@ -12,7 +12,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  const { userId, orgId, has } = await auth()
+  const { userId, orgId } = await auth()
   if (!userId || !orgId) {
     return new Response("Unauthorized", { status: 401 })
   }
@@ -25,17 +25,6 @@ export async function GET(
     orgId,
     sessionId,
   })
-
-  // Session replay is a Pro feature. Gate it here, not just in the UI, so a
-  // non-pro org can't pull a recording by calling the route directly. `has`
-  // evaluates the active org, which we've confirmed exists above.
-  if (!has({ plan: "pro" })) {
-    Sentry.logger.warn("Session replay denied — Pro plan required", {
-      orgId,
-      sessionId,
-    })
-    return new Response("Pro plan required", { status: 403 })
-  }
 
   try {
     // Steel exposes completed session recordings as an HLS playlist at this
