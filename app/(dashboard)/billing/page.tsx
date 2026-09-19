@@ -1,5 +1,3 @@
-import { PricingTable } from "@clerk/nextjs"
-
 export default function BillingPage() {
   return (
     <div className="h-svh overflow-y-auto">
@@ -7,14 +5,12 @@ export default function BillingPage() {
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Billing</h1>
           <p className="text-muted-foreground text-sm">
-            Choose a plan for your organization. Upgrades and checkout happen
-            right here.
+            Billing is temporarily disabled while the app is in development.
           </p>
         </div>
-        <PricingTable
-          for="organization"
-          newSubscriptionRedirectUrl="/billing"
-        />
+        <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
+          Organization plans and checkout are currently unavailable.
+        </div>
       </div>
     </div>
   )
