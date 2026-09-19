@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from "react"
 import Hls from "hls.js"
 import { Loader2 } from "lucide-react"
 
-// How long to wait between polls while Browserbase is still processing the
+// How long to wait between polls while Steel is still processing the
 // recording. The replay lags the session close by a few seconds; this keeps the
 // wait responsive without hammering the route.
 const POLL_INTERVAL_MS = 2000
 
 type Status = "loading" | "ready" | "error" | "unsupported"
 
-// Plays back a Browserbase session's recording from its session id. The playlist
+// Plays back a Steel session's recording from its session id. The playlist
 // is proxied through /api/replays/[sessionId] (which holds the secret key); this
 // polls that route until the recording is ready — it lags the session close —
 // then feeds the HLS playlist to hls.js.

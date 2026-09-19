@@ -2,6 +2,12 @@ import toposort from "toposort"
 import { logger, metadata, task } from "@trigger.dev/sdk"
 import type { DeserializedJson } from "@trigger.dev/core"
 import { Stagehand } from "@browserbasehq/stagehand"
+import {
+  createSteelSession,
+  releaseSteelSession,
+  steelCdpUrl,
+  steelViewerUrl,
+} from "@/lib/steel"
 import { nodeExecutors } from "@/features/workflows/nodes/node-executors"
 import {
   interpolate,
@@ -75,29 +81,47 @@ export const runWorkflowTask = task({
 
     publishSteps()
 
-    // The run owns one Browserbase session, opened lazily on the first browser step
-    // and reused by every later one, so the recording spans the whole flow. The
-    // LLM routes through Browserbase's Model Gateway (BROWSERBASE_API_KEY), so no
-    // separate provider key is needed.
+    // Steel owns the browser session. One session is opened lazily and reused
+    // by every browser node, so the live viewer and recording cover the whole flow.
+    // Stagehand connects to Steel over CDP instead of asking Browserbase for a
+    // managed browser or model gateway.
     let stagehand: Stagehand | undefined
-    // The Browserbase session id, captured the moment the session opens so it can
-    // be returned in the run's output — a panel reads it there to fetch the replay
-    // once the run finishes and the recording is available.
-    let browserbaseSessionId: string | undefined
+    let steelSessionId: string | undefined
+    let steelDebugUrl: string | undefined
+
     const getStagehand = async () => {
       if (stagehand) return stagehand
-      stagehand = new Stagehand({
-        env: "BROWSERBASE",
-        apiKey: process.env.BROWSERBASE_API_KEY!,
-        model: "google/gemini-2.5-flash",
+
+      const session = await createSteelSession()
+      steelSessionId = session.id
+      steelDebugUrl = steelViewerUrl(session)
+
+      // Publish the live session as soon as it exists so the dashboard can open
+      // the Steel viewer while the workflow is still executing.
+      metadata.set("steelSessionId", steelSessionId)
+      metadata.set("steelDebugUrl", steelDebugUrl)
+      await metadata.flush()
+
+      const candidate = new Stagehand({
+        env: "LOCAL",
+        localBrowserLaunchOptions: {
+          cdpUrl: steelCdpUrl(session),
+        },
+        model: {
+          modelName: process.env.STAGEHAND_MODEL ?? "google/gemini-2.5-flash",
+          apiKey:
+            process.env.GOOGLE_API_KEY ??
+            process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+        },
         // Pino's logging backend spawns a thread-stream worker (lib/worker.js)
         // that can't be resolved inside trigger.dev's bundled output. Disable it —
         // the option exists for exactly these minimal/bundled environments.
         disablePino: true,
       })
-      await stagehand.init()
-      browserbaseSessionId = stagehand.browserbaseSessionID
-      return stagehand
+
+      await candidate.init()
+      stagehand = candidate
+      return candidate
     }
 
     // Each node's result, keyed by its id, so later nodes can pull from it.
@@ -105,64 +129,71 @@ export const runWorkflowTask = task({
     // populated by the time we run it.
     const outputs: NodeOutputs = {}
 
-    for (let i = 0; i < order.length; i++) {
-      const id = order[i]
-      const step = steps[i]
-      const node = byId.get(id)!
-      logger.log(`Running step: ${node.data.title}`)
+    try {
+      for (let i = 0; i < order.length; i++) {
+        const id = order[i]
+        const step = steps[i]
+        const node = byId.get(id)!
+        logger.log(`Running step: ${node.data.title}`)
 
-      // A node with no executor (the start trigger) does no work and produces no
-      // output — mark it done rather than leaving it "pending", which reads as
-      // skipped forever in the console.
-      const executor = nodeExecutors[node.data.type]
-      if (!executor) {
-        step.status = "done"
-        publishSteps()
-        continue
-      }
+        // A node with no executor (the start trigger) does no work and produces no
+        // output — mark it done rather than leaving it "pending", which reads as
+        // skipped forever in the console.
+        const executor = nodeExecutors[node.data.type]
+        if (!executor) {
+          step.status = "done"
+          publishSteps()
+          continue
+        }
 
-      // Mark running before the executor and flush immediately: the "done" set
-      // below happens before the SDK's next background flush, so without forcing
-      // it here the "running" state is overwritten and the canvas never spins.
-      step.status = "running"
-      publishSteps()
-      await metadata.flush()
-
-      // Swap {{ nodeId.path }} placeholders for upstream output before running.
-      const values = Object.fromEntries(
-        Object.entries(node.data.values).map(([key, text]) => [
-          key,
-          interpolate({ text, outputs }),
-        ])
-      )
-
-      // Time the executor so the console can show how long the step took, on
-      // both the success and failure paths.
-      const startedAt = Date.now()
-      try {
-        const output = await executor({ values, getStagehand })
-        outputs[id] = output
-        step.output = output
-      } catch (error) {
-        // Flush the "failed" state before the throw unwinds the run: a thrown run
-        // returns no output, so this flushed metadata is the only way the canvas
-        // ever learns which node failed — and the only place its error survives.
-        step.status = "failed"
-        step.durationMs = Date.now() - startedAt
-        step.error = error instanceof Error ? error.message : String(error)
+        // Mark running before the executor and flush immediately: the "done" set
+        // below happens before the SDK's next background flush, so without forcing
+        // it here the "running" state is overwritten and the canvas never spins.
+        step.status = "running"
         publishSteps()
         await metadata.flush()
-        await stagehand?.close()
-        throw error
+
+        // Swap {{ nodeId.path }} placeholders for upstream output before running.
+        const values = Object.fromEntries(
+          Object.entries(node.data.values).map(([key, text]) => [
+            key,
+            interpolate({ text, outputs }),
+          ])
+        )
+
+        // Time the executor so the console can show how long the step took, on
+        // both the success and failure paths.
+        const startedAt = Date.now()
+        try {
+          const output = await executor({ values, getStagehand })
+          outputs[id] = output
+          step.output = output
+        } catch (error) {
+          // Flush the "failed" state before the throw unwinds the run: a thrown run
+          // returns no output, so this flushed metadata is the only way the canvas
+          // ever learns which node failed — and the only place its error survives.
+          step.status = "failed"
+          step.durationMs = Date.now() - startedAt
+          step.error = error instanceof Error ? error.message : String(error)
+          publishSteps()
+          await metadata.flush()
+          throw error
+        }
+
+        step.status = "done"
+        step.durationMs = Date.now() - startedAt
+        publishSteps()
       }
 
-      step.status = "done"
-      step.durationMs = Date.now() - startedAt
-      publishSteps()
+      return { steps, steelSessionId, steelDebugUrl }
+    } finally {
+      try {
+        await stagehand?.close()
+      } finally {
+        if (steelSessionId) {
+          await releaseSteelSession(steelSessionId)
+        }
+      }
     }
-
-    await stagehand?.close()
-
-    return { steps, browserbaseSessionId }
   },
 })
