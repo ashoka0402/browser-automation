@@ -18,9 +18,12 @@ export default function RootLayout({
     >
       <body>
         <ClerkProvider
+         
           appearance={{ theme: shadcn }}
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
+          signInFallbackRedirectUrl="/dashboard"
+  signUpFallbackRedirectUrl="/dashboard"
         >
           <ThemeProvider>
             {children}
