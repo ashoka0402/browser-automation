@@ -7,7 +7,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { createWorkflowAction } from "@/features/workflows/actions"
@@ -21,8 +20,7 @@ export async function AppSidebar({
   const workflows = orgId ? await listWorkflows(orgId) : []
 
   return (
-    <SidebarProvider className="h-svh">
-      <Sidebar variant="inset" collapsible="icon" {...props}>
+    <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader className="flex-row items-center justify-between gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
         <OrganizationSwitcher
           afterCreateOrganizationUrl="/"
@@ -57,6 +55,5 @@ export async function AppSidebar({
         />
       </SidebarFooter>
     </Sidebar>
-    </SidebarProvider>
   )
 }
