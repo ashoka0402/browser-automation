@@ -1,0 +1,20 @@
+services:
+  steel:
+    image: ghcr.io/steel-dev/steel-browser:latest
+    container_name: browser-automation-steel
+    restart: unless-stopped
+    ports:
+      # 3000 is normally used by Next.js, so Steel is exposed on 3100.
+      - "3100:3000"
+      # 9223 is Steel's Chrome/CDP port; expose it on a different host port
+      # to avoid collisions with other browser tooling.
+      - "9323:9223"
+    environment:
+      DOMAIN: ${STEEL_DOMAIN:-localhost:3100}
+      CDP_DOMAIN: ${STEEL_CDP_DOMAIN:-localhost:9323}
+    volumes:
+      - steel-cache:/app/.cache
+    shm_size: "2gb"
+
+volumes:
+  steel-cache:
