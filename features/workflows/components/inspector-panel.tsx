@@ -2,7 +2,6 @@
 
 import { NodeIcon } from "@/features/workflows/components/node-icon"
 import { LiveSession } from "@/features/workflows/components/live-session"
-import { SessionReplay } from "@/features/workflows/components/session-replay"
 import {
   useConsoleRuns,
 } from "@/features/workflows/components/workflow-runs-provider"
@@ -17,9 +16,9 @@ function Note({ children }: { children: React.ReactNode }) {
   )
 }
 
-// The output pane for whatever the logs have selected: a step's output, or a
-// whole run's session replay. It re-reads the shared run history so a
-// still-running step's output appears the moment it lands, without a re-select.
+// The output pane for whatever the logs have selected: a step or the live browser.
+ // It re-reads the shared run history so a still-running step's output appears
+ // the moment it lands, without a re-select.
 export function InspectorPanel({ selection }: { selection: ConsoleSelection }) {
   const runs = useConsoleRuns()
   const run = runs.find((r) => r.id === selection.runId)
@@ -31,19 +30,7 @@ export function InspectorPanel({ selection }: { selection: ConsoleSelection }) {
       return <LiveSession viewerUrl={run.steelDebugUrl} />
     }
 
-    if (run?.steelSessionId) {
-      return <SessionReplay sessionId={run.steelSessionId} />
-    }
-
     return <Note>This live browser session is no longer available.</Note>
-  }
-
-  // A run's replay stands for the whole session — play it instead of any step.
-  if (selection.kind === "replay") {
-    if (!run?.steelSessionId) {
-      return <Note>This recording is no longer available.</Note>
-    }
-    return <SessionReplay sessionId={run.steelSessionId} />
   }
 
   const step = run?.steps.find((s) => s.nodeId === selection.nodeId)
