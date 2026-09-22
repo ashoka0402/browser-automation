@@ -108,7 +108,7 @@ export const runWorkflowTask = task({
           cdpUrl: steelCdpUrl(session),
         },
         model: {
-          modelName: process.env.STAGEHAND_MODEL ?? "google/gemini-3.6-flash",
+          modelName: process.env.STAGEHAND_MODEL ?? "google/gemini-3.5-flash-lite",
           apiKey:
             process.env.GOOGLE_API_KEY ??
             process.env.GOOGLE_GENERATIVE_AI_API_KEY,
