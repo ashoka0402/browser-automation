@@ -137,6 +137,7 @@ export const nodeRegistry = {
       },
     ],
     outputs: [
+      { path: "report", label: "Report" },
       { path: "success", label: "Success" },
       { path: "message", label: "Message" },
       { path: "completed", label: "Completed" },
