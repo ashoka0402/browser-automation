@@ -5,7 +5,7 @@ import { notFound } from "next/navigation"
 import { ReactFlowProvider } from "@xyflow/react"
 
 import { liveblocks } from "@/lib/liveblocks"
-import { getWorkflow, getWorkflowById } from "@/features/workflows/data"
+import { getWorkflowById } from "@/features/workflows/data"
 import { Room } from "@/features/workflows/components/room"
 import { WorkflowShell } from "@/features/workflows/components/workflow-shell"
 import { WorkflowRunsProvider } from "@/features/workflows/components/workflow-runs-provider"
@@ -19,18 +19,17 @@ export default async function Page({
   const { userId, orgId } = await auth()
   if (!userId) notFound()
 
-  let workflow = orgId ? await getWorkflow(orgId, id) : undefined
+  // Resolve the workflow by ID first. The URL may survive an organization
+  // switch, so authorization is handled separately below.
+  const workflow = await getWorkflowById(id)
+  if (!workflow) notFound()
 
-  // A workflow URL can survive an organization switch. Resolve the workflow by
-  // id, verify that the signed-in user is a member of its organization, and show
-  // the organization picker so Clerk can make that organization active.
-  if (!workflow) {
-    const candidate = await getWorkflowById(id)
-    if (!candidate) notFound()
-
+  // If the workflow belongs to another organization, make sure the signed-in
+  // user is a member before asking Clerk to switch the active organization.
+  if (workflow.orgId !== orgId) {
     const client = await clerkClient()
     const membership = await client.organizations.getOrganizationMembershipList({
-      organizationId: candidate.orgId,
+      organizationId: workflow.orgId,
       userId: [userId],
       limit: 1,
     })
