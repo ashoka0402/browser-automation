@@ -104,6 +104,10 @@ export const runWorkflowTask = task({
 
       const candidate = new Stagehand({
         env: "LOCAL",
+        // Agent structured output schemas are experimental in Stagehand and
+        // require the local/disabled-API execution path.
+        experimental: true,
+        disableAPI: true,
         localBrowserLaunchOptions: {
           cdpUrl: steelCdpUrl(session),
         },
