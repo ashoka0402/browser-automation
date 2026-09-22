@@ -14,7 +14,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className="font-sans antialiased"
+      className="dark font-sans antialiased"
     >
       <body>
         <ClerkProvider
